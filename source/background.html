@@ -1,0 +1,105 @@
+<script type="text/javascript">
+chrome.extension.getVersion = function() {
+  if (!chrome.extension.version_) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", chrome.extension.getURL('manifest.json'), false);
+    xhr.onreadystatechange = function() {
+      if (this.readyState == 4) {
+        var manifest = JSON.parse(this.responseText);
+        chrome.extension.version_ = manifest.version;
+      }
+    };
+    xhr.send();
+  }
+
+  return chrome.extension.version_;
+
+};
+
+chrome.extension.onRequest.addListener(
+  function(request, sender, sendResponse) {
+    switch(request.name)
+	{
+	case "GM_xmlhttpRequest":
+	  var chromexmlhttp;
+	  var options = request;
+	  chromexmlhttp = new XMLHttpRequest();
+	  chromexmlhttp.open(options["method"], options["url"], true);
+	  chromexmlhttp.onload = function(resp) {
+        var responseDetails = {callbackType: "onload", responseText: chromexmlhttp.responseText, readyState: chromexmlhttp.readyState, status: (chromexmlhttp.readyState==4?chromexmlhttp.status:0), statusText: (chromexmlhttp.readyState==4?chromexmlhttp.statusText:''), responseHeaders: (chromexmlhttp.readyState==4?chromexmlhttp.getAllResponseHeaders():'')}
+        sendResponse(responseDetails);
+      };
+	  chromexmlhttp.onerror = function(resp) {
+        var responseDetails = {callbackType: "onerror", responseText: chromexmlhttp.responseText, readyState: chromexmlhttp.readyState, status: (chromexmlhttp.readyState==4?chromexmlhttp.status:0), statusText: (chromexmlhttp.readyState==4?chromexmlhttp.statusText:''), responseHeaders: (chromexmlhttp.readyState==4?chromexmlhttp.getAllResponseHeaders():'')}
+        sendResponse(responseDetails);
+      };
+	  chromexmlhttp.send(null);
+	  break;
+	case "updateLocalPrefs":
+	  //chrome.tabs.executeScript(sender.tab.id, {file: chrome.extension.getURL("BNetSquelcher.user.js")});
+	  sendResponse({BFXversion: chrome.extension.getVersion()});
+	  break;
+	//case "attachBFX":
+	  //chrome.tabs.executeScript(sender.tab.id, {file: chrome.extension.getURL("BNetSquelcher.user.js")});
+	  //sendResponse({});
+	  //break;
+	default:
+	  sendResponse({});
+	}
+  });
+
+chrome.extension.onConnect.addListener(function(port) {
+    console.assert(port.name == "GM_openInTab");
+    port.onMessage.addListener(function(msg) {
+		if (typeof(msg.url)=="string")
+		    chrome.tabs.create({url: msg.url});
+    });
+});
+
+/*chrome.extension.onConnect.addListener(function(port) {
+    console.assert(port.name == "attachBFX");
+    port.onMessage.addListener(function(msg) {
+		chrome.tabs.executeScript(port.sender.tab.id, {file: chrome.extension.getURL("BNetSquelcher.user.js")});
+    });
+});*/
+  
+function GM_getValue(prefName, defaultValue)
+{
+    var key = "BFX_GM_" + prefName + ".value";
+    var typeKey = "BFX_GM_" + prefName + ".type";
+	if (localStorage.getItem(key) == null)
+	    return defaultValue;
+    var prefType = localStorage.getItem(typeKey);
+	var stringedValue = localStorage.getItem(key);
+	if (prefType == null && defaultValue != null)
+	    prefType = typeof(defaultValue);
+    switch (prefType) {
+        case "string": return stringedValue;
+        case "boolean": 
+			if (stringedValue == "true" || "1") {return true;}
+			else if (stringedValue == "false" || "0") {return false;} //if it's not "true", "1", "false", or "0", just let it return the defaultValue in the last line of this function.
+        case "number": return parseInt(stringedValue);
+    }
+	return defaultValue; //if the type pref is lost or is of an unhandled type and we can't guess the type from the defaultValue, we'll pretend that the pref just isn't there.
+}
+
+function GM_setValue(prefName,value)
+{
+	var key = "BFX_GM_" + prefName + ".value";
+    var typeKey = "BFX_GM_" + prefName + ".type";
+    var prefType=typeof(value);
+    switch (prefType) {
+        case "string": localStorage.setItem(key, value); localStorage.setItem(typeKey, prefType); break;
+        case "boolean": localStorage.setItem(key, value); localStorage.setItem(typeKey, prefType); break;
+        case "number": 
+            if (value % 1 != 0) {
+                throw new Error("Cannot set preference to non integral number");
+            }
+            localStorage.setItem(key, value);
+			localStorage.setItem(typeKey, prefType); break;
+        default:
+            throw new Error("Cannot set preference with datatype: " + prefType);
+    }
+}
+
+</script>

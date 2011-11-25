@@ -1,0 +1,24 @@
+{
+  "name": "Blizzard Forum eXtender",
+  "version": "0.2",
+  "description": "Adds useful features to Blizzard Entertainment forums.",
+
+  "icons": { "48": "bfx-48.png","128": "bfx-128.png" },
+  "permissions": [
+  "tabs"
+  ],
+  "background_page": "background.html",
+  "content_scripts": [
+    {
+      "matches": [
+	   "http://*.battle.net/*/forum/*",
+	   "https://*.battle.net/*/forum/*"
+	  ],
+      "js": [
+	   "jquery-1.6.2.js",
+	   "GM_wrapper.js",
+	   "BlizzardForumeXtender.user.js"
+	  ]
+    }
+  ]
+}
