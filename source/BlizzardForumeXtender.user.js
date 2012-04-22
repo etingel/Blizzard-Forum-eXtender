@@ -24,12 +24,15 @@ function BFXthread() {
 	$('#thread div[id|="post"]').each(function(index) {
 		postList[index] = new Post(this);
 	})
-    
+  locked = ((!($('.ui-button.disabled[href="javascript:;"]')[0] == null)) && ($('.ui-button[href="#new-post"]')[0] == null))
 	if (GM_getValue("instaquote", true))
 	{
 	    //Inject the cached quotes we made locally
 	    document.body.appendChild(document.createElement("script")).innerHTML="Cms.Topic.cachedQuotes = " + JSON.stringify(cachedQuotes) + ";";
 	}
+  
+  addViewSourceBtns(postList);
+  
 	if (GM_getValue("signature_toggle", false))
 	{
 	    addSigCode(true/*is a reply*/);
@@ -138,25 +141,48 @@ function loadOptions() {
 }
 
 function Post(baseNode) {
-    this.baseNode = baseNode;
+  this.baseNode = baseNode;
 	this.postId = $(this.baseNode).attr('id').split("-")[1];
+  this.relPostNum = parseInt($('span[id]',this.baseNode).attr('id'));
 	if ($('.post-interior',this.baseNode).html().replace(/\n/g,"") != "")
 	{
-		this.deleted = false;
-		
 		this.contentNode = $('.post-detail',this.baseNode);
-		this.orginalContentHtml = this.contentNode.html().replace(/(^\s+|\s+$)/g, "");
-		this.orginalContentBml = BML.toBml($('.post-detail',this.baseNode).html().replace(/(^\s+|\s+$)/g, ""));
+    if (this.contentNode.html() != null)
+    {
+      this.deleted = false;
+	  	this.orginalContentHtml = this.contentNode.html().replace(/(^\s+|\s+$)/g, "");
+	  	this.orginalContentBml = BML.toBml($('.post-detail',this.baseNode).html().replace(/(^\s+|\s+$)/g, ""));
 		
-		this.author = $('.context-link',this.baseNode).text().replace(/\n/g,"").replace(/(^\s+|\s+$)/g, "");
+	  	this.author = $('.context-link',this.baseNode).text().replace(/\n/g,"").replace(/(^\s+|\s+$)/g, "");
 		
-		if (GM_getValue("instaquote", true))
-		{
-		    cachedQuotes[this.postId] = {"name":this.author,"detail":this.orginalContentBml};
-		}
-	} else {
+	  	if (GM_getValue("instaquote", true))
+	  	{
+	  	  cachedQuotes[this.postId] = {"name":this.author,"detail":this.orginalContentBml};
+	  	}
+    } else {
 	    this.deleted = true;
+	  }
+	} else {
+	  this.deleted = true;
 	}
+}
+
+function addViewSourceBtns(postList) {
+    pLlen=postList.length;
+    for (index=0;index<pLlen;index++)
+    {
+      if (!postList[index].deleted)
+      {
+        btnhtml = '<div style="float: left;"><a class="ui-button button2 " id="srcbtn-' + index + '" href="#' + postList[index].relPostNum + '" style="float: left;"><span><span>Source</span></span></a></div>';
+        $('.post-options',postList[index].baseNode).prepend(btnhtml);
+        $('a[id|="srcbtn"]',postList[index].baseNode).bind('click', {i: index}, function(event) {
+          txtareaId = "txtsrc-" + event.data.i;
+          postList[event.data.i].contentNode.html('<textarea disabled="disabled" cols="69" id="'+txtareaId+'" style="height: '+postList[event.data.i].contentNode.css('height') +';"></textarea>');
+          document.getElementById(txtareaId).value = '[quote="'+postList[event.data.i].postId+'"]'+postList[event.data.i].orginalContentBml+'[/quote]'
+		      return false;
+        });
+      }
+    }
 }
 
 Post.prototype.contentHtml = function() {
@@ -199,7 +225,9 @@ function stripSig(postBodyString)
 
 function addSigCode(isReply)
 {
-    //code migrated from BNSQ 2.1, hence the lack of jQuery...
+  //code migrated from BNSQ 2.1, hence the lack of jQuery...
+  if (document.getElementById("submitBtn") != null) //check if the submit button is even on the page (the post could be locked)
+  {
     var submit = document.getElementById("submitBtn").getElementsByTagName("button")[0];
     submit.addEventListener('click', function(event)
     {
@@ -238,6 +266,7 @@ function addSigCode(isReply)
         messageNode.value = originalMessageNode.value;
         messageNode.value = addSig(messageNode.value)
     }, false);
+  }
 }
 function addSig(postBox)
 {
