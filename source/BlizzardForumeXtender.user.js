@@ -208,21 +208,21 @@ function getSig(postBodyString)
   var postContent = "";
   var sig = null;
   var sigSeparator = "";
-  if (/(^|\n)_{48}\n/.test(postBodyString))
+  if (/(\n)_{48}\n/.test(postBodyString))
   {
     postContent = "";
-		var sigList = postBodyString.split("________________________________________________");
+		var sigList = postBodyString.split("\n________________________________________________\n");
 		for (i=0;i<sigList.length-1;i++)
 		{
 		  if (i == 0)
 			{
 			  postContent = postContent + sigList[i];
 			} else {
-			  postContent = postContent + "________________________________________________" + sigList[i];
+			  postContent = postContent + "\n________________________________________________\n" + sigList[i];
 			}
 		}
     sig = sigList[sigList.length-1];
-    sigSeparator = "________________________________________________";
+    sigSeparator = "\n________________________________________________\n";
 	}
 	else
 	{
