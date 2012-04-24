@@ -1,3 +1,14 @@
+// ==UserScript==
+// @name          Blizzard Forum eXtender
+// @namespace     http://maged.lordaeron.org/bfx/
+// @description   Adds useful features to Blizzard Entertainment forums.
+// @include       http://*.battle.net/*/forum/*
+// @include       https://*.battle.net/*/forum/*
+// @icon          http://maged.lordaeron.org/bfx/bfx-icon32.png
+// @require       http://maged.lordaeron.org/bfx/libs/jquery-1.6.2.min.js
+// @version       0.3.6
+// ==/UserScript==
+
 //To-do: Make Submit/Reset buttons function, check if Signature is enabled before adding it to a post
 //	fix checkboxes (always stuck to true?), and make Signature function an array?
 
@@ -16,6 +27,18 @@ function BFXmain() {
 	{
 	    BFXoptions();
 	}
+  
+//====Migrated code from BFH:====
+  //==Editing Fixes==
+  if (/^http:\/\/us\.battle\.net\/(sc2|wow|d3)\/[^\/]+\/forum\/topic\/post\/([0-9]+)\/edit$/.test(document.location.href))
+  {
+    messageNode = document.getElementById("postCommand.detail");
+    messageNode.value = messageNode.value.replace(/<\/?a[^><]*>/g,"");
+    messageNode.value = messageNode.value.replace(/<\/?br[^><]*>/g,"\n");
+  }
+  //==Lengthen Search Box==
+  var search = document.getElementById("search-field");
+	search.maxLength = "99999";
 }
 
 function BFXthread() {
@@ -403,3 +426,6 @@ var BML = {
         return string.replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"');
     }
 };
+
+//Finally, run the script.
+BFXmain();

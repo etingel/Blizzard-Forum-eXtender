@@ -86,7 +86,7 @@ function GM_xmlhttpRequest(options)
 chromexmlhttp.send(null);
 }*/
 
-function updateLocalPrefs(runBFX)//async; tells the background page to send us the current preferences
+/*function updateLocalPrefs(runBFX)//async; tells the background page to send us the current preferences
 {
 	chrome.extension.sendRequest({name: "updateLocalPrefs"}, function(resp) {
 		BFXcrVer = resp.BFXversion;
@@ -99,4 +99,4 @@ function updateLocalPrefs(runBFX)//async; tells the background page to send us t
 }
 var BFXcrVer;
 var prefObject;
-updateLocalPrefs(true);
+updateLocalPrefs(true);*/
