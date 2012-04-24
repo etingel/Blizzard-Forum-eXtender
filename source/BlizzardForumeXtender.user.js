@@ -152,12 +152,16 @@ function Post(baseNode) {
       this.deleted = false;
 	  	this.orginalContentHtml = this.contentNode.html().replace(/(^\s+|\s+$)/g, "");
 	  	this.orginalContentBml = BML.toBml($('.post-detail',this.baseNode).html().replace(/(^\s+|\s+$)/g, ""));
-		
+      sigJSON = getSig(this.orginalContentBml);
+      this.orginalContentBmlBody = sigJSON.body;
+      this.orginalContentBmlSeparator = sigJSON.separator;
+      this.orginalContentBmlSig = sigJSON.sig;
+      
 	  	this.author = $('.context-link',this.baseNode).text().replace(/\n/g,"").replace(/(^\s+|\s+$)/g, "");
 		
 	  	if (GM_getValue("instaquote", true))
 	  	{
-	  	  cachedQuotes[this.postId] = {"name":this.author,"detail":this.orginalContentBml};
+	  	  cachedQuotes[this.postId] = {"name":this.author,"detail":this.orginalContentBmlBody};
 	  	}
     } else {
 	    this.deleted = true;
@@ -176,9 +180,9 @@ function addViewSourceBtns(postList) {
         btnhtml = '<div style="float: left;"><a class="ui-button button2 " id="srcbtn-' + index + '" href="#' + postList[index].relPostNum + '" style="float: left;"><span><span>Source</span></span></a></div>';
         $('.post-options',postList[index].baseNode).prepend(btnhtml);
         $('a[id|="srcbtn"]',postList[index].baseNode).bind('click', {i: index}, function(event) {
-          txtareaId = "txtsrc-" + event.data.i;
-          postList[event.data.i].contentNode.html('<textarea disabled="disabled" cols="69" id="'+txtareaId+'" style="height: '+postList[event.data.i].contentNode.css('height') +';"></textarea>');
-          document.getElementById(txtareaId).value = '[quote="'+postList[event.data.i].postId+'"]'+postList[event.data.i].orginalContentBml+'[/quote]'
+          txtareaId = "bmlsrc-" + event.data.i;
+          postList[event.data.i].contentNode.html('<textarea disabled="disabled" cols="68" id="'+txtareaId+'" style="height: '+(postList[event.data.i].contentNode.height() + 20) +'px;"></textarea>');
+          document.getElementById(txtareaId).value = '[quote="'+postList[event.data.i].postId+'"]'+postList[event.data.i].orginalContentBmlBody+'[/quote]';
 		      return false;
         });
       }
@@ -199,28 +203,70 @@ function verboseEscape(string) {
 	return string;
 }
 
-function stripSig(postBodyString)
+function getSig(postBodyString)
 {
-    if (/(^|\n)_{48}\n/.test(postBodyString))
-    {
-        postContent = "";
+  var postContent = "";
+  var sig = null;
+  var sigSeparator = "";
+  if (/(^|\n)_{48}\n/.test(postBodyString))
+  {
+    postContent = "";
 		var sigList = postBodyString.split("________________________________________________");
 		for (i=0;i<sigList.length-1;i++)
 		{
-		    if (i == 0)
+		  if (i == 0)
 			{
-			    postContent = postContent + sigList[i];
+			  postContent = postContent + sigList[i];
 			} else {
-			    postContent = postContent + "________________________________________________" + sigList[i];
+			  postContent = postContent + "________________________________________________" + sigList[i];
 			}
 		}
-		return postContent;
+    sig = sigList[sigList.length-1];
+    sigSeparator = "________________________________________________";
 	}
 	else
 	{
-        postBodyString = postBodyString.replace(/(^|\n)(_{10,}|-{10,})(\n[^\n]*){1,5}$/, "");
-        return postBodyString;
+    postContent = postBodyString.replace(/(^|\n)(_{10,}|-{10,})(\n[^\n]*){1,5}$/, "");
+    if (postContent != postBodyString)
+    {
+      sigregresult = (/(^|\n)(_{10,}|-{10,})(\n[^\n]*){1,5}$/).exec(postBodyString);
+      sigSeparator = sigregresult[1] + sigregresult[2];
+      sig = sigregresult[3];
+    } else {
+      sig = null;
+    }
 	}
+  quoteOpenRegex = /\[quote(?:=(?:[^\]]+)?)?\]/gi;
+  quoteCloseRegex = /\[\/quote\]/gi;
+  if (sig != null)
+  {
+    var numOpenTags,numCloseTags;
+    
+    openTags = sig.match(quoteOpenRegex)
+    if (openTags == null)
+    {
+      numOpenTags = 0;
+    } else {
+      numOpenTags = openTags.length;
+    }
+    
+    closeTags = sig.match(quoteCloseRegex)
+    if (closeTags == null)
+    {
+      numCloseTags = 0;
+    } else {
+      numCloseTags = closeTags.length;
+    }
+    
+    if (numOpenTags == numCloseTags)
+    {
+      return {"body":postContent,"separator":sigSeparator,"sig":sig};
+    } else { //if the quote tags don't match up within the prospective sig, the sig is probably within a quote of a post by someone else
+      return {"body":(postContent + sigSeparator + sig),"separator":null,"sig":null};
+    }
+  } else {
+    return {"body":postContent,"separator":null,"sig":null};
+  }
 }
 
 function addSigCode(isReply)
@@ -340,7 +386,6 @@ var BML = {
 		content = content.replace(/<code>/gi, '[code]');
         content = content.replace(/<\/code>/gi, '[/code]');
         content = content.replace(/(\n<br(.*?)>)|(<br(.*?)>\n)|(<br(.*?)>)/gi, "\n");
-		content = stripSig(content);
         content = BML.decode(content);
 
         return content;
