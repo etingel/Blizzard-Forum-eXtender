@@ -39,8 +39,8 @@ function GM_getValue(prefName, defaultValue)
     switch (prefType) {
         case "string": return stringedValue;
         case "boolean": 
-			if (stringedValue == "true" || "1") {return true;}
-			else if (stringedValue == "false" || "0") {return false;} //if it's not "true", "1", "false", or "0", just let it return the defaultValue in the last line of this function.
+			if (stringedValue == "true" ||stringedValue == "1") {return true;}
+			else if (stringedValue == "false" ||stringedValue == "0") {return false;} //if it's not "true", "1", "false", or "0", just let it return the defaultValue in the last line of this function.
         case "number": return parseInt(stringedValue);
     }
 	return defaultValue; //if the type pref is lost or is of an unhandled type and we can't guess the type from the defaultValue, we'll pretend that the pref just isn't there.

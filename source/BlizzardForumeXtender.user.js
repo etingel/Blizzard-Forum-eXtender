@@ -6,11 +6,11 @@
 // @include       https://*.battle.net/*/forum/*
 // @icon          http://maged.lordaeron.org/bfx/bfx-icon32.png
 // @require       http://maged.lordaeron.org/bfx/libs/jquery-1.6.2.min.js
-// @version       0.3.6
+// @version       0.3.7
 // ==/UserScript==
 
-//To-do: Make Submit/Reset buttons function, check if Signature is enabled before adding it to a post
-//	fix checkboxes (always stuck to true?), and make Signature function an array?
+//To-do: 
+// make Signature function an array for random quotations?
 
 //alert($); // check if the dollar (jquery) function works
 //alert($().jquery); // check jQuery version
@@ -142,10 +142,10 @@ function saveOptions() {
 	}
 }
 function setIfChanged(prefName,defaultValue,value) {
-    if (GM_getValue(prefName,defaultValue) != value) {
+    //if (GM_getValue(prefName,defaultValue) != value) {
 	    //alert(prefName+": "+GM_getValue(prefName,defaultValue)+" -> "+value);
 		GM_setValue(prefName,value);
-    }
+    //}
 }
 function loadOptions() {
 	document.getElementById('signature').checked = GM_getValue("signature_toggle",false);
