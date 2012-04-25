@@ -6,7 +6,7 @@
 // @include       https://*.battle.net/*/forum/*
 // @icon          http://maged.lordaeron.org/bfx/bfx-icon32.png
 // @require       http://maged.lordaeron.org/bfx/libs/jquery-1.6.2.min.js
-// @version       0.3.7
+// @version       0.3.8
 // ==/UserScript==
 
 //To-do: 
@@ -84,9 +84,9 @@ function BFXoptions() {
 	settingsHTML += '<h1 style="font-size: 19px; font-weight: normal; padding: 6px; position: relative; right: 6px;">General:</h1>\n';
      	settingsHTML += '<div style="position:relative; left: 12px;">\n';
      	settingsHTML += '<input type="checkbox" name="signature" value="signature" id="signature" />Enable signature<br />\n';
-     	settingsHTML += '<input type="checkbox" name="stripsig" value="stripsig" id="stripsig"/>Display signatures<br />\n';
-     	settingsHTML += '<input type="checkbox" name="exbml" value="exbml" id="exbml"/>Enable exBML<br />\n';
-     	settingsHTML += '<input type="checkbox" name="degrade" value="degrade" id="degrade"/>Gracefully degrade exBML<br />\n';
+     	//settingsHTML += '<input type="checkbox" name="stripsig" value="stripsig" id="stripsig"/>Display signatures<br />\n';
+     	//settingsHTML += '<input type="checkbox" name="exbml" value="exbml" id="exbml"/>Enable exBML<br />\n';
+     	//settingsHTML += '<input type="checkbox" name="degrade" value="degrade" id="degrade"/>Gracefully degrade exBML<br />\n';
      	settingsHTML += '<input type="checkbox" name="instaquote" value="instaquote" id="instaquote"/>Generate quotes locally<br />\n';
      	settingsHTML += '</div>\n';
      	settingsHTML += '<div class="talkback-btm" style="padding-bottom: 20px;"/>\n';
@@ -102,7 +102,7 @@ function BFXoptions() {
 	$('.service-welcome').append('\n|  <a href="?bfx-options" tabindex="50" accesskey="3">BFX Options</a>');
 	
 	//same here
-	$('.support-nav').append('<li><a href="http://code.google.com/p/bfx/issues/list" tabindex="55" class="support-category"><strong class="support-caption">BFX Issues</strong>Report issues within the BFX here.</a></li>');
+	$('.support-nav').append('<li><a href="http://code.google.com/p/bfx/issues/list" tabindex="55" class="support-category"><strong class="support-caption">BFX Issues</strong>Report issues with Blizzard Forum eXtender here.</a></li>');
 
 	//load options
 	loadOptions();
@@ -133,25 +133,25 @@ function BFXoptions() {
 function saveOptions() {
     //use setIfChanged so we know if the user changed from the default value at some point, in case we change the default settings in the future.
 	setIfChanged("signature_toggle",false, document.getElementById('signature').checked);
-	setIfChanged("stripsig",true, document.getElementById('stripsig').checked);
-	setIfChanged("exbml_toggle",true, document.getElementById('exbml').checked);
-	setIfChanged("degradebml",true, document.getElementById('degrade').checked);
+	//setIfChanged("stripsig",true, document.getElementById('stripsig').checked);
+	//setIfChanged("exbml_toggle",true, document.getElementById('exbml').checked);
+	//setIfChanged("degradebml",true, document.getElementById('degrade').checked);
 	setIfChanged("instaquote",true, document.getElementById('instaquote').checked);
 	if (document.getElementById('signature').checked) {
 	    setIfChanged("signature_text","", document.getElementById('postCommand.detail').value);
 	}
 }
 function setIfChanged(prefName,defaultValue,value) {
-    //if (GM_getValue(prefName,defaultValue) != value) {
+    if (GM_getValue(prefName,defaultValue) != value) {
 	    //alert(prefName+": "+GM_getValue(prefName,defaultValue)+" -> "+value);
-		GM_setValue(prefName,value);
-    //}
+		  GM_setValue(prefName,value);
+    }
 }
 function loadOptions() {
 	document.getElementById('signature').checked = GM_getValue("signature_toggle",false);
-	document.getElementById('stripsig').checked = GM_getValue("stripsig",true);
-	document.getElementById('exbml').checked = GM_getValue("exbml_toggle",true);
-	document.getElementById('degrade').checked = GM_getValue("degradebml",true);
+	//document.getElementById('stripsig').checked = GM_getValue("stripsig",true);
+	//document.getElementById('exbml').checked = GM_getValue("exbml_toggle",true);
+	//document.getElementById('degrade').checked = GM_getValue("degradebml",true);
 	document.getElementById('instaquote').checked = GM_getValue("instaquote",true);
 	if (GM_getValue("signature_toggle", false)) {
 	    $('.post-editor').removeAttr("disabled");
