@@ -6,16 +6,22 @@
 // @include       https://*.battle.net/*/forum/*
 // @icon          http://maged.lordaeron.org/bfx/bfx-icon32.png
 // @require       http://maged.lordaeron.org/bfx/libs/jquery-1.6.2.min.js
-// @version       0.3.8
+// @version       0.5.0
 // ==/UserScript==
 
 //To-do: 
+// make source a toggle
+// add default settings page for main forum list and 404
 // make Signature function an array for random quotations?
 
 //alert($); // check if the dollar (jquery) function works
 //alert($().jquery); // check jQuery version
 function BFXmain() {
-    if (/^http(s)?:\/\/(\w)+\.battle\.net\/(\w)+\/(\w)+\/forum\/topic/.test(document.location.href))
+  if (/^http(s)?:\/\/(\w)+\.battle\.net\/(\w)+\/(\w)+\/forum\/[0-9]+\/$/.test(document.location.href))
+	{
+	    //BFXboard();
+	}
+  if (/^http(s)?:\/\/(\w)+\.battle\.net\/(\w)+\/(\w)+\/forum\/topic\/[0-9]+/.test(document.location.href))
 	{
 	    BFXthread();
 	}
@@ -27,15 +33,14 @@ function BFXmain() {
 	{
 	    BFXoptions();
 	}
-  
+  //alert(JSON.stringify(parseForumURL(document.location.href)));
+  //add BFX options link.
+	$('.service-welcome').append('\n|  <a href="' + getNewTopicURL() + '?bfx-options" tabindex="50" accesskey="3">BFX Options</a>');
+	
+	//add BFX support bar
+	$('.support-nav').append('<li><a href="http://code.google.com/p/bfx/issues/list" tabindex="55" class="support-category"><strong class="support-caption">BFX Issues</strong>Report issues with Blizzard Forum eXtender here.</a></li>');
+
 //====Migrated code from BFH:====
-  //==Editing Fixes==
-  if (/^http:\/\/us\.battle\.net\/(sc2|wow|d3)\/[^\/]+\/forum\/topic\/post\/([0-9]+)\/edit$/.test(document.location.href))
-  {
-    messageNode = document.getElementById("postCommand.detail");
-    messageNode.value = messageNode.value.replace(/<\/?a[^><]*>/g,"");
-    messageNode.value = messageNode.value.replace(/<\/?br[^><]*>/g,"\n");
-  }
   //==Lengthen Search Box==
   var search = document.getElementById("search-field");
 	search.maxLength = "99999";
@@ -97,13 +102,7 @@ function BFXoptions() {
 	
 	var buttonHTML = '<button class="ui-button button1" type="submit" id="save"><span><span>Save</span></span></button><button class="ui-button button1" type="submit" id="reset"><span><span>Reset</span></span></button>';
 	$('#submitBtn').html(buttonHTML);
-
-	//add BFX options link. Note: I cheated here. Will change once I standardize this for every page.
-	$('.service-welcome').append('\n|  <a href="?bfx-options" tabindex="50" accesskey="3">BFX Options</a>');
-	
-	//same here
-	$('.support-nav').append('<li><a href="http://code.google.com/p/bfx/issues/list" tabindex="55" class="support-category"><strong class="support-caption">BFX Issues</strong>Report issues with Blizzard Forum eXtender here.</a></li>');
-
+  
 	//load options
 	loadOptions();
 	
@@ -211,7 +210,36 @@ function addViewSourceBtns(postList) {
       }
     }
 }
-
+function parseForumURL(inputURL) {
+  var rawparseddata = /((^http(?:s)?:\/\/(\w+)\.battle\.net)\/(\w+)\/(\w+)\/forum)(?:(?:\/([0-9]+))|(?:\/topic\/([0-9]+))){0,1}/.exec(inputURL);
+  var returndata = {"forumbase":rawparseddata[1],"base":rawparseddata[2],"region":rawparseddata[3],"game":rawparseddata[4],"lang":rawparseddata[5]}
+  var URLboard = rawparseddata[6];
+  if (URLboard)
+    returndata.board = URLboard;
+  var URLtopic = rawparseddata[7];
+  if (URLtopic)
+    returndata.topic = URLtopic;
+  return returndata;
+}
+function getNewTopicURL() {
+  var URLdata = parseForumURL(document.location.href);
+  var newTopicUrl = "";
+  if (URLdata.board) {
+    newTopicUrl = "" + URLdata.forumbase + "\/" + URLdata.board + "\/topic";
+  } else {
+    var currentBoardJQNode = $(".ui-breadcrumb a[href*=\"/forum/\"]");
+    var testUrlData;
+    currentBoardJQNode.each(function(index) {
+      testUrlData = parseForumURL(this.href);
+      if (testUrlData.board) {
+        newTopicUrl = testUrlData.forumbase + "\/" + testUrlData.board + "\/topic";
+      }
+	  })
+  } //else {
+    //var firstBoardJQNode = $(".forum-link");
+  //}
+  return newTopicUrl;
+}
 Post.prototype.contentHtml = function() {
     return this.contentNode.html();
 };

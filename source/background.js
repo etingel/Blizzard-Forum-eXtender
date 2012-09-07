@@ -1,4 +1,3 @@
-<script type="text/javascript">
 chrome.extension.getVersion = function() {
   if (!chrome.extension.version_) {
     var xhr = new XMLHttpRequest();
@@ -48,13 +47,13 @@ chrome.extension.onRequest.addListener(
 	}
   });
 
-chrome.extension.onConnect.addListener(function(port) {
+/*chrome.extension.onConnect.addListener(function(port) {
     console.assert(port.name == "GM_openInTab");
     port.onMessage.addListener(function(msg) {
 		if (typeof(msg.url)=="string")
 		    chrome.tabs.create({url: msg.url});
     });
-});
+});*/
 
 /*chrome.extension.onConnect.addListener(function(port) {
     console.assert(port.name == "attachBFX");
@@ -63,7 +62,7 @@ chrome.extension.onConnect.addListener(function(port) {
     });
 });*/
   
-function GM_getValue(prefName, defaultValue)
+/*function GM_getValue(prefName, defaultValue)
 {
     var key = "BFX_GM_" + prefName + ".value";
     var typeKey = "BFX_GM_" + prefName + ".type";
@@ -101,5 +100,4 @@ function GM_setValue(prefName,value)
             throw new Error("Cannot set preference with datatype: " + prefType);
     }
 }
-
-</script>
+*/

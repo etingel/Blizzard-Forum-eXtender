@@ -46,11 +46,11 @@ function GM_getValue(prefName, defaultValue)
 	return defaultValue; //if the type pref is lost or is of an unhandled type and we can't guess the type from the defaultValue, we'll pretend that the pref just isn't there.
 }
 
-function GM_openInTab(url)
+/*function GM_openInTab(url)
 {
 	var port = chrome.extension.connect({name: "GM_openInTab"});
     port.postMessage({url: url});
-}
+}*/
 
 function GM_xmlhttpRequest(options)
 {
