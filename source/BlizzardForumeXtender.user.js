@@ -6,13 +6,22 @@
 // @include       https://*.battle.net/*/forum/*
 // @icon          http://maged.lordaeron.org/bfx/bfx-icon32.png
 // @require       http://maged.lordaeron.org/bfx/libs/jquery-1.6.2.min.js
-// @version       0.5.0
+// @version       0.6.0
 // ==/UserScript==
 
 //To-do: 
+// add an alert saying settings were saved
+// use em units when possible for sizes
 // make source a toggle
 // add default settings page for main forum list and 404
 // make Signature function an array for random quotations?
+
+//Changes made since last release (0.5.0):
+// Refactored some code that was origially hacked in
+// toBML can now handle [url] tags
+// Added option to continue striping out [url] tags, since non-Blizzard people can't use them anyway.
+// Fixed options not showing save or reset buttons right after posting
+// Upgraded BFX for the new forum
 
 //alert($); // check if the dollar (jquery) function works
 //alert($().jquery); // check jQuery version
@@ -47,18 +56,40 @@ function BFXmain() {
 }
 
 function BFXthread() {
-	cachedQuotes = {}; //instant quote cache
-	postList = [];
+	var postList = [];
+  var index;
 	$('#thread div[id|="post"]').each(function(index) {
+    //For old forum version
+    //Put every detected post into a Post object, and add that object to the postList array.
+    //This includes deleted posts, so check Post.deleted to filter them out, if necessary
 		postList[index] = new Post(this);
 	})
-  locked = ((!($('.ui-button.disabled[href="javascript:;"]')[0] == null)) && ($('.ui-button[href="#new-post"]')[0] == null))
-	if (GM_getValue("instaquote", true))
+  $('#post-list div[id|="post"]').each(function(index) {
+    //For new forum version 2/1/2013
+    //Put every detected post into a Post object, and add that object to the postList array.
+    //This includes deleted posts, so check Post.deleted to filter them out, if necessary
+		postList[index] = new Post(this);
+	})
+  //use to check if the thread is locked
+  var locked = ((!($('.ui-button.disabled[href="javascript:;"]')[0] == null)) && ($('.ui-button[href="#new-post"]')[0] == null))
+	//alert(locked);
+  //if the instaquote preference is on, add the BML version of posts to the cache that Blizzard so graciously provided.
+  if (GM_getValue("instaquote", true))
 	{
-	    //Inject the cached quotes we made locally
-	    document.body.appendChild(document.createElement("script")).innerHTML="Cms.Topic.cachedQuotes = " + JSON.stringify(cachedQuotes) + ";";
+    var cachedQuotes = {}; //instant quote cache
+    var pLlen=postList.length;
+    var currentpost;
+    for (index=0;index<pLlen;index++)
+    {
+      currentpost = postList[index];
+      if (!currentpost.deleted)
+        {cachedQuotes[currentpost.postId] = {"name":currentpost.author,"detail":currentpost.orginalContentBmlBody};}
+    }
+    //Inject the cached quotes we made locally
+    document.body.appendChild(document.createElement("script")).innerHTML="if(typeof Cms != 'undefined'){ Cms.Topic.cachedQuotes = " + JSON.stringify(cachedQuotes) + ";} else if (typeof ForumTopic != 'undefined') {ForumTopic.cachedQuotes = " + JSON.stringify(cachedQuotes) + ";}";
 	}
   
+  //add the "Source" button, so that people can easily see the BML for locked posts
   addViewSourceBtns(postList);
   
 	if (GM_getValue("signature_toggle", false))
@@ -83,7 +114,13 @@ function BFXoptions() {
 	newTopicJQNode.attr("href",newTopicUrl+"?bfx-options");
 	newTopicJQNode.html("BFX Forum Options");
 	//change Create Thread heading to BFX Forum Options
-	$("div.post-user-details h4").html("BFX Forum Options");
+	createThreadJQNode = $("div.form-title h3.header-3"); //new forum support
+  if (createThreadJQNode.length < 1)
+  {
+      createThreadJQNode = $("div.post-user-details h4"); //old forum support
+  }
+  
+  createThreadJQNode.html("BFX Forum Options");
 	//draw main UI
 	var settingsHTML = '<div align="center">Need help? Check out the Blizzard Forum eXtender <a href="http://code.google.com/p/bfx/">homepage</a>!<br />\nBlizzard Forum eXtender created by <a href="http://maged.lordaeron.org/">Maged</a> and <a href="http://www.sixen.org/">Sixen</a>.</div>\n';
 	settingsHTML += '<h1 style="font-size: 19px; font-weight: normal; padding: 6px; position: relative; right: 6px;">General:</h1>\n';
@@ -93,15 +130,35 @@ function BFXoptions() {
      	//settingsHTML += '<input type="checkbox" name="exbml" value="exbml" id="exbml"/>Enable exBML<br />\n';
      	//settingsHTML += '<input type="checkbox" name="degrade" value="degrade" id="degrade"/>Gracefully degrade exBML<br />\n';
      	settingsHTML += '<input type="checkbox" name="instaquote" value="instaquote" id="instaquote"/>Generate quotes locally<br />\n';
+      settingsHTML += '<input type="checkbox" name="stripurltags" value="stripurltags" id="stripurltags"/>Strip [url] tags from generated quotes<br />\n';
      	settingsHTML += '</div>\n';
      	settingsHTML += '<div class="talkback-btm" style="padding-bottom: 20px;"/>\n';
      	settingsHTML += '<h1 style="font-size: 19px; font-weight: normal; padding: 0px; position:relative; right: 0px;">Signature:</h1>\n';
-	$('.post-edit').prepend(settingsHTML);
+	$('div#post-edit').parent().prepend(settingsHTML);
 	$('.post-subject').remove();
 	$('.post-editor').attr("style","height: 112px; width: 562px;");
 	
-	var buttonHTML = '<button class="ui-button button1" type="submit" id="save"><span><span>Save</span></span></button><button class="ui-button button1" type="submit" id="reset"><span><span>Reset</span></span></button>';
-	$('#submitBtn').html(buttonHTML);
+	var buttonHTML = '<button class="ui-button button1" type="submit" id="save"><span class="button-left"><span class="button-right">Save</span></span></button> <button class="ui-button button1" type="submit" id="reset"><span class="button-left"><span class="button-right">Reset</span></span></button>';
+  
+  submitBtnJQNode = $('table.submit-post tr td'); //new forum support
+  if (submitBtnJQNode.length < 1)
+  {
+      submitBtnJQNode = $('div.submit-post'); //new forum countdown support 
+  }
+  if (submitBtnJQNode.length < 1)
+  {
+      submitBtnJQNode = $('#submitBtn'); //old forum support 
+  }
+  submitBtnJQNode.html(buttonHTML);
+  
+  //for old forum:
+  //if you've posted in the last 60 seconds, this will unhide the save and reset buttons
+  submitBtnJQNode.attr("style","display: block; "); 
+  var countdownnode = $('#postCountdown');
+  if (countdownnode.html() != null)
+  {
+    countdownnode.attr("style","display: none; ");
+  }
   
 	//load options
 	loadOptions();
@@ -109,14 +166,14 @@ function BFXoptions() {
 	//set change detection for sig checkbox
 	var currentEnteredSig = GM_getValue("signature_text","");
 	$('#signature').change(function() {
-	    if (document.getElementById('signature').checked) {
-	        $('.post-editor').removeAttr("disabled");
-	        document.getElementById('postCommand.detail').value = currentEnteredSig;
-	    }
-	    else {
-	        $('.post-editor').attr("disabled","disabled");
+	  if (document.getElementById('signature').checked) 
+    {
+	    $('.post-editor').removeAttr("disabled");
+	    document.getElementById('postCommand.detail').value = currentEnteredSig;
+	  } else {
+	    $('.post-editor').attr("disabled","disabled");
 			currentEnteredSig = document.getElementById('postCommand.detail').value
-		    document.getElementById('postCommand.detail').value = 'The Signature feature is currently disabled. To enable, check "Enable Signature" in the above General section of the Settings.';
+		  document.getElementById('postCommand.detail').value = 'The Signature feature is currently disabled. To enable, check "Enable Signature" in the above General section of the Settings.';
 	    }
     });
 	$("#save").click(function () {
@@ -130,12 +187,13 @@ function BFXoptions() {
 }
 
 function saveOptions() {
-    //use setIfChanged so we know if the user changed from the default value at some point, in case we change the default settings in the future.
+  //use setIfChanged so we know if the user changed from the default value at some point, in case we change the default settings in the future.
 	setIfChanged("signature_toggle",false, document.getElementById('signature').checked);
 	//setIfChanged("stripsig",true, document.getElementById('stripsig').checked);
 	//setIfChanged("exbml_toggle",true, document.getElementById('exbml').checked);
 	//setIfChanged("degradebml",true, document.getElementById('degrade').checked);
 	setIfChanged("instaquote",true, document.getElementById('instaquote').checked);
+  setIfChanged("stripurltags",true, document.getElementById('stripurltags').checked);
 	if (document.getElementById('signature').checked) {
 	    setIfChanged("signature_text","", document.getElementById('postCommand.detail').value);
 	}
@@ -152,12 +210,13 @@ function loadOptions() {
 	//document.getElementById('exbml').checked = GM_getValue("exbml_toggle",true);
 	//document.getElementById('degrade').checked = GM_getValue("degradebml",true);
 	document.getElementById('instaquote').checked = GM_getValue("instaquote",true);
+  document.getElementById('stripurltags').checked = GM_getValue("stripurltags",true);
 	if (GM_getValue("signature_toggle", false)) {
-	    $('.post-editor').removeAttr("disabled");
-	    document.getElementById('postCommand.detail').value = GM_getValue("signature_text","");
+	  $('.post-editor').removeAttr("disabled");
+	  document.getElementById('postCommand.detail').value = GM_getValue("signature_text","");
 	}
 	else {
-	    $('.post-editor').attr("disabled","disabled");
+	  $('.post-editor').attr("disabled","disabled");
 		document.getElementById('postCommand.detail').value = 'The Signature feature is currently disabled. To enable, check "Enable Signature" in the above General section of the Settings.';
 	}
 }
@@ -174,32 +233,30 @@ function Post(baseNode) {
       this.deleted = false;
 	  	this.orginalContentHtml = this.contentNode.html().replace(/(^\s+|\s+$)/g, "");
 	  	this.orginalContentBml = BML.toBml($('.post-detail',this.baseNode).html().replace(/(^\s+|\s+$)/g, ""));
-      sigJSON = getSig(this.orginalContentBml);
+      var sigJSON = getSig(this.orginalContentBml);
       this.orginalContentBmlBody = sigJSON.body;
       this.orginalContentBmlSeparator = sigJSON.separator;
       this.orginalContentBmlSig = sigJSON.sig;
       
 	  	this.author = $('.context-link',this.baseNode).text().replace(/\n/g,"").replace(/(^\s+|\s+$)/g, "");
-		
-	  	if (GM_getValue("instaquote", true))
-	  	{
-	  	  cachedQuotes[this.postId] = {"name":this.author,"detail":this.orginalContentBmlBody};
-	  	}
     } else {
 	    this.deleted = true;
 	  }
 	} else {
 	  this.deleted = true;
 	}
+  
+  //alert("relPostNum: " + this.relPostNum + " deleted: " + this.deleted);
 }
 
 function addViewSourceBtns(postList) {
-    pLlen=postList.length;
+    var pLlen=postList.length;
+    var index;
     for (index=0;index<pLlen;index++)
     {
       if (!postList[index].deleted)
       {
-        btnhtml = '<div style="float: left;"><a class="ui-button button2 " id="srcbtn-' + index + '" href="#' + postList[index].relPostNum + '" style="float: left;"><span><span>Source</span></span></a></div>';
+        btnhtml = '<div style="float: left;"><a class="ui-button button2 " id="srcbtn-' + index + '" href="#' + postList[index].relPostNum + '" style="float: left;"><span class="button-left"><span class="button-right">Source</span></span></a></div>';
         $('.post-options',postList[index].baseNode).prepend(btnhtml);
         $('a[id|="srcbtn"]',postList[index].baseNode).bind('click', {i: index}, function(event) {
           txtareaId = "bmlsrc-" + event.data.i;
@@ -322,8 +379,51 @@ function getSig(postBodyString)
 
 function addSigCode(isReply)
 {
+  //new forum code
+  submitbuttonjqnode = $(".ui-button.button1[type=submit]");
+  if (submitbuttonjqnode.length == 1)
+  {
+    submitbuttonjqnode.click(function(event)
+    {
+        var txtBox = "detail";
+        if(!isReply)
+        {
+	        //for new topics
+	        txtBox = "postCommand.detail";
+        }
+        else
+        {
+        	//for replies
+        	txtBox = "detail";
+        }
+
+        originalMessageNode = document.getElementById(txtBox);
+        newMessageNode = originalMessageNode.cloneNode(true);
+        originalMessageNode.removeAttribute("name");
+        if (document.getElementById("newmessage") == null)
+        {
+            newMessageNode.id = "newmessage";
+            hiddenDiv = document.createElement("div");
+            hiddenDiv.style.display = "none";
+            originalMessageNode.parentNode.appendChild(hiddenDiv);
+            hiddenDiv.appendChild(newMessageNode);
+        }
+        else
+        {
+            newMessageNode.setAttribute("name", txtBox);
+            oldHiddenMessage = document.getElementById("newmessage");
+            parentDiv = oldHiddenMessage.parentNode;
+            newMessageNode.id = "newmessage";
+            parentDiv.replaceChild(newMessageNode, oldHiddenMessage);
+        }
+        messageNode = document.getElementById("newmessage");
+        messageNode.value = originalMessageNode.value;
+        messageNode.value = addSig(messageNode.value)
+    });
+  }
   //code migrated from BNSQ 2.1, hence the lack of jQuery...
-  if (document.getElementById("submitBtn") != null) //check if the submit button is even on the page (the post could be locked)
+  //old forum code
+  else if (document.getElementById("submitBtn") != null) //check if the submit button is even on the page (the post could be locked)
   {
     var submit = document.getElementById("submitBtn").getElementsByTagName("button")[0];
     submit.addEventListener('click', function(event)
@@ -420,7 +520,9 @@ var BML = {
         content = content.replace(/ xmlns="(.*?)"/gi, ''); // Remove xhtml namespace
 		content = content.replace(/<blockquote data-quote=\"([0-9]*)\"[^><]*><div>(?:<span class=\"bml-quote-date\">([^><]*)<\/span>)?Posted by (?:<a [^#]*#*([0-9]*)[^><]*>)?([^><]*)(?:<\/a>)?<\/div>/gim, '[quote="$1"]');
 		content = content.replace(/<span class="truncated"><\/span>/gim, "");
-		content = content.replace(/<\/?a[^><]*>/g,"");//filter out any links already present, since the only ones that are parsed with this are ones added by the forum
+    if (!GM_getValue("stripurltags", true))
+      {content = content.replace(/<a href="([^"]*)" class="bml-link-url2">((?:(?:[^<>])*(?:<(?:\/)?[^a<>\/](?:[^<>])*>)*)*)?\<\/a>/gi, '[url="$1"]$2[/url]');}
+		content = content.replace(/<\/?a[^><]*>/g,"");//filter out any links still present, since the only ones that are parsed with this are ones added by the forum
         content = content.replace(/<strong>/gi, '[b]');
         content = content.replace(/<\/strong>/gi, '[/b]');
         content = content.replace(/<em>/gi, '[i]');
