@@ -6,7 +6,7 @@
 // @include       https://*.battle.net/*/forum/*
 // @icon          http://maged.lordaeron.org/bfx/bfx-icon32.png
 // @require       http://maged.lordaeron.org/bfx/libs/jquery-1.6.2.min.js
-// @version       0.6.0
+// @version       0.6.1
 // ==/UserScript==
 
 //To-do: 
@@ -16,12 +16,15 @@
 // add default settings page for main forum list and 404
 // make Signature function an array for random quotations?
 
-//Changes made since last release (0.5.0):
+//Changes made in 0.6.0:
 // Refactored some code that was origially hacked in
 // toBML can now handle [url] tags
 // Added option to continue striping out [url] tags, since non-Blizzard people can't use them anyway.
 // Fixed options not showing save or reset buttons right after posting
 // Upgraded BFX for the new forum
+
+//Changes made since last release (0.6.0):
+// None
 
 //alert($); // check if the dollar (jquery) function works
 //alert($().jquery); // check jQuery version
@@ -30,15 +33,15 @@ function BFXmain() {
 	{
 	    //BFXboard();
 	}
-  if (/^http(s)?:\/\/(\w)+\.battle\.net\/(\w)+\/(\w)+\/forum\/topic\/[0-9]+/.test(document.location.href))
+  if (/^http(s)?:\/\/(\w)+\.battle\.net\/((\w)+\/)?(\w)+\/forum\/topic\/[0-9]+/.test(document.location.href))
 	{
 	    BFXthread();
 	}
-	if (/^http(s)?:\/\/(\w)+\.battle\.net\/(\w)+\/(\w)+\/forum\/[0-9]+\/topic$/.test(document.location.href))
+	if (/^http(s)?:\/\/(\w)+\.battle\.net\/((\w)+\/)?(\w)+\/forum\/[0-9]+\/topic$/.test(document.location.href))
 	{
 	    BFXnewtopic();
 	}
-	if (/^http(s)?:\/\/(\w)+\.battle\.net\/(\w)+\/(\w)+\/forum\/[0-9]+\/topic\?bfx-options$/.test(document.location.href))
+	if (/^http(s)?:\/\/(\w)+\.battle\.net\/((\w)+\/)?(\w)+\/forum\/[0-9]+\/topic\?bfx-options$/.test(document.location.href))
 	{
 	    BFXoptions();
 	}
@@ -260,7 +263,7 @@ function addViewSourceBtns(postList) {
         $('.post-options',postList[index].baseNode).prepend(btnhtml);
         $('a[id|="srcbtn"]',postList[index].baseNode).bind('click', {i: index}, function(event) {
           txtareaId = "bmlsrc-" + event.data.i;
-          postList[event.data.i].contentNode.html('<textarea disabled="disabled" cols="68" id="'+txtareaId+'" style="height: '+(postList[event.data.i].contentNode.height() + 20) +'px;"></textarea>');
+          postList[event.data.i].contentNode.html('<textarea disabled="disabled" cols="65" id="'+txtareaId+'" style="height: '+(postList[event.data.i].contentNode.height() + 20) +'px;"></textarea>');
           document.getElementById(txtareaId).value = '[quote="'+postList[event.data.i].postId+'"]'+postList[event.data.i].orginalContentBmlBody+'[/quote]';
 		      return false;
         });
@@ -268,7 +271,7 @@ function addViewSourceBtns(postList) {
     }
 }
 function parseForumURL(inputURL) {
-  var rawparseddata = /((^http(?:s)?:\/\/(\w+)\.battle\.net)\/(\w+)\/(\w+)\/forum)(?:(?:\/([0-9]+))|(?:\/topic\/([0-9]+))){0,1}/.exec(inputURL);
+  var rawparseddata = /((^http(?:s)?:\/\/(\w+)\.battle\.net)\/(?:(\w+)\/)?(\w+)\/forum)(?:(?:\/([0-9]+))|(?:\/topic\/([0-9]+))){0,1}/.exec(inputURL);
   var returndata = {"forumbase":rawparseddata[1],"base":rawparseddata[2],"region":rawparseddata[3],"game":rawparseddata[4],"lang":rawparseddata[5]}
   var URLboard = rawparseddata[6];
   if (URLboard)
