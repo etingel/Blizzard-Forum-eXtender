@@ -416,8 +416,8 @@ function addSigCode(isReply)
             newMessageNode.setAttribute("name", txtBox);
             oldHiddenMessage = document.getElementById("newmessage");
             parentDiv = oldHiddenMessage.parentNode;
-            newMessageNode.id = "newmessage";
             parentDiv.replaceChild(newMessageNode, oldHiddenMessage);
+            newMessageNode.id = "newmessage";
         }
         messageNode = document.getElementById("newmessage");
         messageNode.value = originalMessageNode.value;
