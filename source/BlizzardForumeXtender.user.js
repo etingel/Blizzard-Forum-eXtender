@@ -16,18 +16,6 @@
 // add default settings page for main forum list and 404
 // make Signature function an array for random quotations?
 
-//Changes made in 0.6.0:
-// Refactored some code that was origially hacked in
-// toBML can now handle [url] tags
-// Added option to continue striping out [url] tags, since non-Blizzard people can't use them anyway.
-// Fixed options not showing save or reset buttons right after posting
-// Upgraded BFX for the new forum
-
-//Changes made since last release (0.6.0):
-// None
-
-//alert($); // check if the dollar (jquery) function works
-//alert($().jquery); // check jQuery version
 function BFXmain() {
   if (/^http(s)?:\/\/(\w)+\.battle\.net\/(\w)+\/(\w)+\/forum\/[0-9]+\/$/.test(document.location.href))
 	{
@@ -45,7 +33,6 @@ function BFXmain() {
 	{
 	    BFXoptions();
 	}
-  //alert(JSON.stringify(parseForumURL(document.location.href)));
   //add BFX options link.
 	$('.service-welcome').append('\n|  <a href="' + getNewTopicURL() + '?bfx-options" tabindex="50" accesskey="3">BFX Options</a>');
 	
@@ -75,7 +62,6 @@ function BFXthread() {
 	})
   //use to check if the thread is locked
   var locked = ((!($('.ui-button.disabled[href="javascript:;"]')[0] == null)) && ($('.ui-button[href="#new-post"]')[0] == null))
-	//alert(locked);
   //if the instaquote preference is on, add the BML version of posts to the cache that Blizzard so graciously provided.
   if (GM_getValue("instaquote", true))
 	{
@@ -249,7 +235,6 @@ function Post(baseNode) {
 	  this.deleted = true;
 	}
   
-  //alert("relPostNum: " + this.relPostNum + " deleted: " + this.deleted);
 }
 
 function addViewSourceBtns(postList) {
