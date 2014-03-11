@@ -496,6 +496,7 @@ var BML = {
       content = content.replace(/ xmlns="(.*?)"/gi, ''); // Remove xhtml namespace
       content = content.replace(/<blockquote data-quote=\"([0-9]*)\"[^><]*><div>(?:<span class=\"bml-quote-date\">([^><]*)<\/span>)?Posted by (?:<a [^#]*#*([0-9]*)[^><]*>)?([^><]*)(?:<\/a>)?<\/div>/gim, '[quote="$1"]');
       content = content.replace(/<span class="truncated"><\/span>/gim, "");
+      content = content.replace(/<a href=\"\/wow\/en\/item\/(\d+)\".*?<\/a>/g,"[item=\"$1\" /]");
       if (!GM_getValue("stripurltags", true))
         {content = content.replace(/<a href="([^"]*)" class="bml-link-url2">((?:(?:[^<>])*(?:<(?:\/)?[^a<>\/](?:[^<>])*>)*)*)?\<\/a>/gi, '[url="$1"]$2[/url]');}
       content = content.replace(/<\/?a[^><]*>/g,"");//filter out any links still present, since the only ones that are parsed with this are ones added by the forum
