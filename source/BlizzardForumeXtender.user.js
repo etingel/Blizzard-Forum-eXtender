@@ -247,7 +247,7 @@ function addViewSourceBtns(postList) {
       $('.post-options',postList[index].baseNode).prepend(btnhtml);
       $('a[id|="srcbtn"]',postList[index].baseNode).bind('click', {i: index}, function(event) {
         txtareaId = "bmlsrc-" + event.data.i;
-        postList[event.data.i].contentNode.html('<textarea disabled="disabled" cols="65" id="'+txtareaId+'" style="height: '+(postList[event.data.i].contentNode.height() + 20) +'px;"></textarea>');
+        postList[event.data.i].contentNode.html('<textarea cols="65" id="'+txtareaId+'" style="height: '+(postList[event.data.i].contentNode.height() + 20) +'px;"></textarea>');
         document.getElementById(txtareaId).value = '[quote="'+postList[event.data.i].postId+'"]'+postList[event.data.i].orginalContentBmlBody+'[/quote]';
         return false;
       });
