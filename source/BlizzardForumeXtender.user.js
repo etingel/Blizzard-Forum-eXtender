@@ -6,7 +6,7 @@
 // @include       https://*.battle.net/*/forum/*
 // @icon          http://maged.lordaeron.org/bfx/bfx-icon32.png
 // @require       http://maged.lordaeron.org/bfx/libs/jquery-1.6.2.min.js
-// @version       0.6.1
+// @version       0.7.0
 // ==/UserScript==
 
 //To-do: 
@@ -14,7 +14,6 @@
 // use em units when possible for sizes
 // make source a toggle
 // add default settings page for main forum list and 404
-// make Signature function an array for random quotations?
 
 function BFXmain() {
   if (/^http(s)?:\/\/(\w)+\.battle\.net\/(\w)+\/(\w)+\/forum\/[0-9]+\/$/.test(document.location.href))
@@ -81,16 +80,18 @@ function BFXthread() {
   //add the "Source" button, so that people can easily see the BML for locked posts
   addViewSourceBtns(postList);
   
-  if (GM_getValue("signature_toggle", false))
+  //check if any post-processing needs to be done before submitting a reply
+  if (GM_getValue("signature_toggle", false) || GM_getValue("degradebml", true))
   {
-    addSigCode(true/*is a reply*/);
+    addPostProcessingCode(true/*is a reply*/);
   }
 }
 
 function BFXnewtopic() {
-  if (GM_getValue("signature_toggle", false))
+  //check if any post-processing needs to be done before submitting a reply
+  if (GM_getValue("signature_toggle", false) || GM_getValue("degradebml", true))
   {
-    addSigCode(false/*is a new post*/);
+    addPostProcessingCode(false/*is a new post*/);
   }
 }
 
@@ -117,7 +118,7 @@ function BFXoptions() {
   settingsHTML += '<input type="checkbox" name="signature" value="signature" id="signature" />Enable signature<br />\n';
   //settingsHTML += '<input type="checkbox" name="stripsig" value="stripsig" id="stripsig"/>Display signatures<br />\n';
   //settingsHTML += '<input type="checkbox" name="exbml" value="exbml" id="exbml"/>Enable exBML<br />\n';
-  //settingsHTML += '<input type="checkbox" name="degrade" value="degrade" id="degrade"/>Gracefully degrade exBML<br />\n';
+  settingsHTML += '<input type="checkbox" name="degrade" value="degrade" id="degrade"/>Gracefully degrade exBML when posting<br />\n';
   settingsHTML += '<input type="checkbox" name="instaquote" value="instaquote" id="instaquote"/>Generate quotes locally<br />\n';
   settingsHTML += '<input type="checkbox" name="stripurltags" value="stripurltags" id="stripurltags"/>Strip [url] tags from generated quotes<br />\n';
   settingsHTML += '</div>\n';
@@ -180,7 +181,7 @@ function saveOptions() {
   setIfChanged("signature_toggle",false, document.getElementById('signature').checked);
   //setIfChanged("stripsig",true, document.getElementById('stripsig').checked);
   //setIfChanged("exbml_toggle",true, document.getElementById('exbml').checked);
-  //setIfChanged("degradebml",true, document.getElementById('degrade').checked);
+  setIfChanged("degradebml",true, document.getElementById('degrade').checked);
   setIfChanged("instaquote",true, document.getElementById('instaquote').checked);
   setIfChanged("stripurltags",true, document.getElementById('stripurltags').checked);
   if (document.getElementById('signature').checked) {
@@ -197,7 +198,7 @@ function loadOptions() {
   document.getElementById('signature').checked = GM_getValue("signature_toggle",false);
   //document.getElementById('stripsig').checked = GM_getValue("stripsig",true);
   //document.getElementById('exbml').checked = GM_getValue("exbml_toggle",true);
-  //document.getElementById('degrade').checked = GM_getValue("degradebml",true);
+  document.getElementById('degrade').checked = GM_getValue("degradebml",true);
   document.getElementById('instaquote').checked = GM_getValue("instaquote",true);
   document.getElementById('stripurltags').checked = GM_getValue("stripurltags",true);
   if (GM_getValue("signature_toggle", false)) {
@@ -353,7 +354,7 @@ function getSig(postBodyString)
   }
 }
 
-function addSigCode(isReply)
+function addPostProcessingCode(isReply)
 {
   //new forum code
   submitbuttonjqnode = $(".ui-button.button1[type=submit]");
@@ -369,8 +370,8 @@ function addSigCode(isReply)
         }
         else
         {
-        	//for replies
-        	txtBox = "detail";
+          //for replies
+          txtBox = "detail";
         }
 
         originalMessageNode = document.getElementById(txtBox);
@@ -394,7 +395,10 @@ function addSigCode(isReply)
         }
         messageNode = document.getElementById("newmessage");
         messageNode.value = originalMessageNode.value;
-        messageNode.value = addSig(messageNode.value)
+        if (GM_getValue("signature_toggle", false))
+          messageNode.value = addSig(messageNode.value);
+        if (GM_getValue("degradebml", true))
+          messageNode.value = parseBML(messageNode.value,exBMLpost,false);
     });
   }
   //code migrated from BNSQ 2.1, hence the lack of jQuery...
@@ -437,7 +441,10 @@ function addSigCode(isReply)
         }
         messageNode = document.getElementById("newmessage");
         messageNode.value = originalMessageNode.value;
-        messageNode.value = addSig(messageNode.value)
+        if (GM_getValue("signature_toggle", false))
+          messageNode.value = addSig(messageNode.value);
+        if (GM_getValue("degradebml", true))
+          messageNode.value = parseBML(messageNode.value,exBMLpost,false);
     }, false);
   }
 }
@@ -448,6 +455,158 @@ function addSig(postBox)
   postBox += GM_getValue("signature_text","");
 
   return postBox; //Leave this here so we can return the sig
+}
+
+//Text and functions for exBML tags
+exBMLpost = new Array();
+exBMLpost["rand"] = function(inputData) {var stringArray = inputData.inputC.split("%"); rand = Math.floor(Math.random() * stringArray.length); return stringArray[rand];};
+
+function parseBML(postHTML,bmlArray/*array of BML functions*/,isPreSanitized)
+{
+ BMLopenRegexpSingle = /\[(\w+)(?:=(?:[^\]]+)?)?\]/i;
+ BMLopenRegexp = /\[(\w+)(?:=(?:[^\]]+)?)?\]/gi; //used to determine how many tags there are
+ BMLregexp = /\[(\w+)(?:=((?:"[^"]+")|(?:'[^']+')|(?:[^\]]+)?))?\](((?:.|\n)+)?\[\/\1\])?/im;
+ if (BMLopenRegexpSingle.test(postHTML)) //no need to parse if there is no exBML
+ {
+  tagCount = postHTML.match(BMLopenRegexp).length;
+  //alert(tagCount);
+  if (tagCount > 50)
+   {return postHTML;}
+  for (var e = 0; e < 50; e++)
+  {
+   BMLstring = BMLregexp.exec(postHTML)[0]; //the original BML - stored so that it can be replaced with the exBML output later
+   tagType = BMLregexp.exec(postHTML)[1]; //the type of tag; i.e. [url] = url
+   params = BMLregexp.exec(postHTML)[2]; //the tag's parameters (if they exist, else undifined); i.e. [url=http://example.com] = http://example.com
+   content = BMLregexp.exec(postHTML)[4]; //the content between the opening and closing tags (if it exists, else undifined); i.e. [url]http://example.com[/url] = http://example.com
+   contentClose = BMLregexp.exec(postHTML)[3]; //content + closing tag (if exists); used internally to fix a problem that arises when two of the same tag types exist
+   a=0 //initializes/resets overflow counter
+   if (content) //if there's no closing tag, why would I remove any?
+   {
+    closeTag = "[/" + tagType + "]"; //don't really feel like parsing it out =/
+    content = content.split(closeTag)[0]; //makes sure only the first closing tag is used to define the content, not another tag's closing tag
+    contentClose = content.split(closeTag)[0] + closeTag;
+    BMLstring = BMLstring.split(closeTag)[0] + closeTag; //don't want to remove another tag's closer...
+   }
+   while (BMLregexp.test(contentClose) && !/noparse/i.test(tagType)) //digs deeper into and parses exBML inside exBML
+   {
+     BMLstring = BMLregexp.exec(contentClose)[0];
+     tagType = BMLregexp.exec(contentClose)[1];
+     params = BMLregexp.exec(contentClose)[2];
+     content = BMLregexp.exec(contentClose)[4];
+     contentClose = BMLregexp.exec(contentClose)[3];
+     if (content) //if there's no closing tag, why would I remove any?
+     {
+       closeTag = "[/" + tagType + "]"; //don't really feel like parsing it out =/
+       content = content.split(closeTag)[0]; //makes sure only the first closing tag is used to define the content, not another tag's closing tag
+       contentClose = content.split(closeTag)[0] + closeTag;
+       BMLstring = BMLstring.split(closeTag)[0] + closeTag; //don't want to remove another tag's closer...
+     }
+     a++
+     //if (a>7) //why 7? don't ask me why, it doesn't really matter... =/ (see below)
+       //break; //prevents possible browser stalls; no technical reason for this other than as a preventitive measure: the parser could in theory dig deeper than the amount of characters that are allowed in a post could be tags
+     //alert("1\nBML String: " + BMLstring + "\nType: " + tagType + "\nParams: " + params + "\nContent: " + content); //used to debug as exBML is being dug into
+   }
+   //alert("2\nBML String: " + BMLstring + "\nType: " + tagType + "\nParams: " + params + "\nContent: " + content); //used to debug as exBML is being dug into
+   if (content) //if there's no closing tag, why would I remove any?
+   {
+    closeTag = "[/" + tagType + "]"; //don't really feel like parsing it out =/
+    content = content.split(closeTag)[0]; //makes sure only the first closing tag is used to define the content, not another tag's closing tag
+    BMLstring = (BMLstring.split(closeTag)[0] + closeTag); //don't want to remove another tag's closer...
+   }
+   //alert("3\nBML String: " + BMLstring + "\nType: " + tagType + "\nParams: " + params + "\nContent: " + content); //debugs the final info
+   postHTML = postHTML.replace(BMLstring,executeBML(BMLstring,tagType,params,content,bmlArray,isPreSanitized).replace(/\$/g,"$$$$"),"m");
+   //alert(postHTML);
+   //alert(tagCount+","+e);
+   //postHTML = postHTML.replace(BMLstring,e);
+   //postBodyNodeList[i].innerHTML = postBodyNodeList[i].innerHTML + "<br>" + postHTML;
+   if (BMLregexp.exec(postHTML) == null)
+   {
+    break;
+   }
+  }
+  //postBodyNodeList[i].innerHTML = /*postBodyNodeList[i].innerHTML + "<br>" + */postHTML;
+ }
+ return postHTML.replace(/<noparse>/g,"");
+}
+
+function executeBML(BMLstring,tagType,params,content,bmlArray,isPreSanitized)
+{
+ if (bmlArray[tagType.toLowerCase()])
+ {
+  var rawparams, delimiter;
+  if (params) 
+  {
+   rawparams = params.replace(/"(?![^<]*>)/g,'&quot;').replace(/'(?![^<]*>)/g,"&#39;");
+   delimiterTestArray = /(?:^"([^"]+)"$)|(?:^'([^']+)'$)|(?:^`([^`]+)`$)|(?:([^\]]+))/.exec(params);
+   if (delimiterTestArray[1])
+   {
+     delimiter = '"';
+     params = delimiterTestArray[1];
+   }
+   else if (delimiterTestArray[2])
+   {
+     delimiter = "'";
+     params = delimiterTestArray[2];
+   }
+   else if (delimiterTestArray[3])
+   {
+     delimiter = "`";
+     params = delimiterTestArray[3];
+   }
+   else
+   {delimiter = "";}
+  }
+  if (!isPreSanitized && (/<(!)?(params|content|input(P|C)?)(?:=\"([^"]*)\")?>/gi.test(BMLstring))) {return BMLstring.replace(/\[/g, "[<noparse>");}
+  if (params && isPreSanitized) {params = params.replace(/"(?![^<]*>)/g,'&quot;').replace(/'(?![^<]*>)/g,"&#39;");}//sanitize user inputs; don't touch pre/blizzard-sanitized html
+  if (content && isPreSanitized) {content = content.replace(/"(?![^<]*>)/g,'&quot;').replace(/'(?![^<]*>)/g,"&#39;");}
+  input = undefined; inputP = undefined; inputC = undefined;
+  if (!params && content){input = content; inputP = content; inputC = content;}
+  if (params && !content){input = params; inputP = params; inputC = params;}
+  if (params && content){inputP = params; inputC = content;}
+  if (params && content && params==content){input = params;}
+  //alert("\nBMLstring: " + BMLstring + "\ntagType: " + tagType + "\nrawparams: " + rawparams + "\ndelimiter: " + delimiter + "\nparams: " + params + "\ncontent: " + content + "\ninput: " + input + "\ninputP: " + inputP + "\ninputC: " + inputC);
+  //alert(eval(exBML[tagType.toLowerCase()]));
+  var inputData = {params:params,content:content,input:input,inputP:inputP,inputC:inputC};
+  if (typeof bmlArray[tagType.toLowerCase()] == "function")
+  {
+    try
+    {
+      exBMLoutput = bmlArray[tagType.toLowerCase()](inputData);
+    } catch(err) {
+      console.log(err.message);
+      return BMLstring.replace(/\[/g, "[<noparse>");
+    }
+  } else {
+    exBMLoutput = bmlArray[tagType.toLowerCase()];
+  }
+  if (/<error>/i.test(exBMLoutput) || (/<!params>/i.test(exBMLoutput) && !params) || (/<!content>/i.test(exBMLoutput) && !content) || (/<!input(P|C)>/i.test(exBMLoutput) && (!inputP || !inputC)) || (/<!input>/i.test(exBMLoutput) && !input))
+  {
+   return BMLstring.replace(/\[/g, "[<noparse>");
+  }
+  try
+  {
+   if (params){exBMLoutput = exBMLoutput.replace(/<(?:!)?params(?:=\"(?:[^"]*)\")?>/gi,params.replace(/\$/g,"$$$$"));}
+   else {exBMLoutput = exBMLoutput.replace(/<params(?:=\"([^"]*)\")?>/gi,"$1");}
+   if (content){exBMLoutput = exBMLoutput.replace(/<(?:!)?content(?:=\"(?:[^"]*)\")?>/gi,content.replace(/\$/g,"$$$$"));}
+   else {exBMLoutput = exBMLoutput.replace(/<content(?:=\"([^"]*)\")?>/gi,"$1");}
+   if (input){exBMLoutput = exBMLoutput.replace(/<(?:!)?input(?:=\"(?:[^"]*)\")?>/gi,input.replace(/\$/g,"$$$$"));}
+   else {exBMLoutput = exBMLoutput.replace(/<input(?:=\"([^"]*)\")?>/gi,"$1");}
+   if (inputP && inputC) {exBMLoutput = exBMLoutput.replace(/<(?:!)?inputP(?:=\"(?:[^"]*)\")?>/gi,inputP.replace(/\$/g,"$$$$")).replace(/<(?:!)?inputC(?:=\"(?:[^"]*)\")?>/gi,inputC.replace(/\$/g,"$$$$"));}
+   else {exBMLoutput = exBMLoutput.replace(/<inputP(?:=\"([^"]*)\")?>/gi,"$1").replace(/<inputC(?:=\"([^"]*)\")?>/gi,"$1");}
+  } catch(err) {
+   //alert(exBMLoutput);
+   if (isPreSanitized)
+   {
+    return exBMLoutput + "<br><span style=\"color: red;\">exBML Parser Error: " + $('<span/>').text(err.message).html() + "</span>";
+   }
+   else
+   {
+    return exBMLoutput;
+   }
+  }
+  return exBMLoutput;
+ }
+ return BMLstring.replace(/\[/g, "[<noparse>");
 }
 
 var BML = {
