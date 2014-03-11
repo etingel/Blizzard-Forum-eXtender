@@ -4,6 +4,8 @@
 // @description   Adds useful features to Blizzard Entertainment forums.
 // @include       http://*.battle.net/*/forum/*
 // @include       https://*.battle.net/*/forum/*
+// @grant         GM_getValue
+// @grant         GM_setValue
 // @icon          http://maged.lordaeron.org/bfx/bfx-icon32.png
 // @require       http://maged.lordaeron.org/bfx/libs/jquery-1.6.2.min.js
 // @version       0.7.0
