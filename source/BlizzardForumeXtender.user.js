@@ -479,14 +479,14 @@ function parseBML(postHTML,bmlArray/*array of BML functions*/,isPreSanitized)
    BMLstring = BMLregexp.exec(postHTML)[0]; //the original BML - stored so that it can be replaced with the exBML output later
    tagType = BMLregexp.exec(postHTML)[1]; //the type of tag; i.e. [url] = url
    params = BMLregexp.exec(postHTML)[2]; //the tag's parameters (if they exist, else undifined); i.e. [url=http://example.com] = http://example.com
-   content = BMLregexp.exec(postHTML)[4]; //the content between the opening and closing tags (if it exists, else undifined); i.e. [url]http://example.com[/url] = http://example.com
+   tagContent = BMLregexp.exec(postHTML)[4]; //the content between the opening and closing tags (if it exists, else undifined); i.e. [url]http://example.com[/url] = http://example.com
    contentClose = BMLregexp.exec(postHTML)[3]; //content + closing tag (if exists); used internally to fix a problem that arises when two of the same tag types exist
    a=0 //initializes/resets overflow counter
-   if (content) //if there's no closing tag, why would I remove any?
+   if (tagContent) //if there's no closing tag, why would I remove any?
    {
     closeTag = "[/" + tagType + "]"; //don't really feel like parsing it out =/
-    content = content.split(closeTag)[0]; //makes sure only the first closing tag is used to define the content, not another tag's closing tag
-    contentClose = content.split(closeTag)[0] + closeTag;
+    tagContent = tagContent.split(closeTag)[0]; //makes sure only the first closing tag is used to define the content, not another tag's closing tag
+    contentClose = tagContent.split(closeTag)[0] + closeTag;
     BMLstring = BMLstring.split(closeTag)[0] + closeTag; //don't want to remove another tag's closer...
    }
    while (BMLregexp.test(contentClose) && !/noparse/i.test(tagType)) //digs deeper into and parses exBML inside exBML
@@ -494,29 +494,29 @@ function parseBML(postHTML,bmlArray/*array of BML functions*/,isPreSanitized)
      BMLstring = BMLregexp.exec(contentClose)[0];
      tagType = BMLregexp.exec(contentClose)[1];
      params = BMLregexp.exec(contentClose)[2];
-     content = BMLregexp.exec(contentClose)[4];
+     tagContent = BMLregexp.exec(contentClose)[4];
      contentClose = BMLregexp.exec(contentClose)[3];
-     if (content) //if there's no closing tag, why would I remove any?
+     if (tagContent) //if there's no closing tag, why would I remove any?
      {
        closeTag = "[/" + tagType + "]"; //don't really feel like parsing it out =/
-       content = content.split(closeTag)[0]; //makes sure only the first closing tag is used to define the content, not another tag's closing tag
-       contentClose = content.split(closeTag)[0] + closeTag;
+       tagContent = tagContent.split(closeTag)[0]; //makes sure only the first closing tag is used to define the content, not another tag's closing tag
+       contentClose = tagContent.split(closeTag)[0] + closeTag;
        BMLstring = BMLstring.split(closeTag)[0] + closeTag; //don't want to remove another tag's closer...
      }
      a++
      //if (a>7) //why 7? don't ask me why, it doesn't really matter... =/ (see below)
        //break; //prevents possible browser stalls; no technical reason for this other than as a preventitive measure: the parser could in theory dig deeper than the amount of characters that are allowed in a post could be tags
-     //alert("1\nBML String: " + BMLstring + "\nType: " + tagType + "\nParams: " + params + "\nContent: " + content); //used to debug as exBML is being dug into
+     //alert("1\nBML String: " + BMLstring + "\nType: " + tagType + "\nParams: " + params + "\nContent: " + tagContent); //used to debug as exBML is being dug into
    }
-   //alert("2\nBML String: " + BMLstring + "\nType: " + tagType + "\nParams: " + params + "\nContent: " + content); //used to debug as exBML is being dug into
-   if (content) //if there's no closing tag, why would I remove any?
+   //alert("2\nBML String: " + BMLstring + "\nType: " + tagType + "\nParams: " + params + "\nContent: " + tagContent); //used to debug as exBML is being dug into
+   if (tagContent) //if there's no closing tag, why would I remove any?
    {
     closeTag = "[/" + tagType + "]"; //don't really feel like parsing it out =/
-    content = content.split(closeTag)[0]; //makes sure only the first closing tag is used to define the content, not another tag's closing tag
+    tagContent = tagContent.split(closeTag)[0]; //makes sure only the first closing tag is used to define the content, not another tag's closing tag
     BMLstring = (BMLstring.split(closeTag)[0] + closeTag); //don't want to remove another tag's closer...
    }
-   //alert("3\nBML String: " + BMLstring + "\nType: " + tagType + "\nParams: " + params + "\nContent: " + content); //debugs the final info
-   postHTML = postHTML.replace(BMLstring,executeBML(BMLstring,tagType,params,content,bmlArray,isPreSanitized).replace(/\$/g,"$$$$"),"m");
+   //alert("3\nBML String: " + BMLstring + "\nType: " + tagType + "\nParams: " + params + "\nContent: " + tagContent); //debugs the final info
+   postHTML = postHTML.replace(BMLstring,executeBML(BMLstring,tagType,params,tagContent,bmlArray,isPreSanitized).replace(/\$/g,"$$$$"),"m");
    //alert(postHTML);
    //alert(tagCount+","+e);
    //postHTML = postHTML.replace(BMLstring,e);
@@ -531,7 +531,7 @@ function parseBML(postHTML,bmlArray/*array of BML functions*/,isPreSanitized)
  return postHTML.replace(/<noparse>/g,"");
 }
 
-function executeBML(BMLstring,tagType,params,content,bmlArray,isPreSanitized)
+function executeBML(BMLstring,tagType,params,tagContent,bmlArray,isPreSanitized)
 {
  if (bmlArray[tagType.toLowerCase()])
  {
@@ -560,15 +560,15 @@ function executeBML(BMLstring,tagType,params,content,bmlArray,isPreSanitized)
   }
   if (!isPreSanitized && (/<(!)?(params|content|input(P|C)?)(?:=\"([^"]*)\")?>/gi.test(BMLstring))) {return BMLstring.replace(/\[/g, "[<noparse>");}
   if (params && isPreSanitized) {params = params.replace(/"(?![^<]*>)/g,'&quot;').replace(/'(?![^<]*>)/g,"&#39;");}//sanitize user inputs; don't touch pre/blizzard-sanitized html
-  if (content && isPreSanitized) {content = content.replace(/"(?![^<]*>)/g,'&quot;').replace(/'(?![^<]*>)/g,"&#39;");}
+  if (tagContent && isPreSanitized) {tagContent = tagContent.replace(/"(?![^<]*>)/g,'&quot;').replace(/'(?![^<]*>)/g,"&#39;");}
   input = undefined; inputP = undefined; inputC = undefined;
-  if (!params && content){input = content; inputP = content; inputC = content;}
-  if (params && !content){input = params; inputP = params; inputC = params;}
-  if (params && content){inputP = params; inputC = content;}
-  if (params && content && params==content){input = params;}
-  //alert("\nBMLstring: " + BMLstring + "\ntagType: " + tagType + "\nrawparams: " + rawparams + "\ndelimiter: " + delimiter + "\nparams: " + params + "\ncontent: " + content + "\ninput: " + input + "\ninputP: " + inputP + "\ninputC: " + inputC);
+  if (!params && tagContent){input = tagContent; inputP = tagContent; inputC = tagContent;}
+  if (params && !tagContent){input = params; inputP = params; inputC = params;}
+  if (params && tagContent){inputP = params; inputC = tagContent;}
+  if (params && tagContent && params==tagContent){input = params;}
+  //alert("\nBMLstring: " + BMLstring + "\ntagType: " + tagType + "\nrawparams: " + rawparams + "\ndelimiter: " + delimiter + "\nparams: " + params + "\ncontent: " + tagContent + "\ninput: " + input + "\ninputP: " + inputP + "\ninputC: " + inputC);
   //alert(eval(exBML[tagType.toLowerCase()]));
-  var inputData = {params:params,content:content,input:input,inputP:inputP,inputC:inputC};
+  var inputData = {params:params,content:tagContent,input:input,inputP:inputP,inputC:inputC};
   if (typeof bmlArray[tagType.toLowerCase()] == "function")
   {
     try
@@ -581,7 +581,7 @@ function executeBML(BMLstring,tagType,params,content,bmlArray,isPreSanitized)
   } else {
     exBMLoutput = bmlArray[tagType.toLowerCase()];
   }
-  if (/<error>/i.test(exBMLoutput) || (/<!params>/i.test(exBMLoutput) && !params) || (/<!content>/i.test(exBMLoutput) && !content) || (/<!input(P|C)>/i.test(exBMLoutput) && (!inputP || !inputC)) || (/<!input>/i.test(exBMLoutput) && !input))
+  if (/<error>/i.test(exBMLoutput) || (/<!params>/i.test(exBMLoutput) && !params) || (/<!content>/i.test(exBMLoutput) && !tagContent) || (/<!input(P|C)>/i.test(exBMLoutput) && (!inputP || !inputC)) || (/<!input>/i.test(exBMLoutput) && !input))
   {
    return BMLstring.replace(/\[/g, "[<noparse>");
   }
@@ -589,7 +589,7 @@ function executeBML(BMLstring,tagType,params,content,bmlArray,isPreSanitized)
   {
    if (params){exBMLoutput = exBMLoutput.replace(/<(?:!)?params(?:=\"(?:[^"]*)\")?>/gi,params.replace(/\$/g,"$$$$"));}
    else {exBMLoutput = exBMLoutput.replace(/<params(?:=\"([^"]*)\")?>/gi,"$1");}
-   if (content){exBMLoutput = exBMLoutput.replace(/<(?:!)?content(?:=\"(?:[^"]*)\")?>/gi,content.replace(/\$/g,"$$$$"));}
+   if (tagContent){exBMLoutput = exBMLoutput.replace(/<(?:!)?content(?:=\"(?:[^"]*)\")?>/gi,tagContent.replace(/\$/g,"$$$$"));}
    else {exBMLoutput = exBMLoutput.replace(/<content(?:=\"([^"]*)\")?>/gi,"$1");}
    if (input){exBMLoutput = exBMLoutput.replace(/<(?:!)?input(?:=\"(?:[^"]*)\")?>/gi,input.replace(/\$/g,"$$$$"));}
    else {exBMLoutput = exBMLoutput.replace(/<input(?:=\"([^"]*)\")?>/gi,"$1");}
@@ -650,36 +650,36 @@ var BML = {
     /**
      * Transform the HTML loosely to BML.
      *
-     * @param string content
+     * @param string postContent
      * @return string
      */
-    toBml: function(content) {
-      content = content.replace(/ xmlns="(.*?)"/gi, ''); // Remove xhtml namespace
-      content = content.replace(/<blockquote data-quote=\"([0-9]*)\"[^><]*><div>(?:<span class=\"bml-quote-date\">([^><]*)<\/span>)?Posted by (?:<a [^#]*#*([0-9]*)[^><]*>)?([^><]*)(?:<\/a>)?<\/div>/gim, '[quote="$1"]');
-      content = content.replace(/<span class="truncated"><\/span>/gim, "");
-      content = content.replace(/<a href=\"\/wow\/en\/item\/(\d+)\".*?<\/a>/g,"[item=\"$1\" /]");
+    toBml: function(postContent) {
+      postContent = postContent.replace(/ xmlns="(.*?)"/gi, ''); // Remove xhtml namespace
+      postContent = postContent.replace(/<blockquote data-quote=\"([0-9]*)\"[^><]*><div>(?:<span class=\"bml-quote-date\">([^><]*)<\/span>)?Posted by (?:<a [^#]*#*([0-9]*)[^><]*>)?([^><]*)(?:<\/a>)?<\/div>/gim, '[quote="$1"]');
+      postContent = postContent.replace(/<span class="truncated"><\/span>/gim, "");
+      postContent = postContent.replace(/<a href=\"\/wow\/en\/item\/(\d+)\".*?<\/a>/g,"[item=\"$1\" /]");
       if (!GM_getValue("stripurltags", true))
-        {content = content.replace(/<a href="([^"]*)" class="bml-link-url2">((?:(?:[^<>])*(?:<(?:\/)?[^a<>\/](?:[^<>])*>)*)*)?\<\/a>/gi, '[url="$1"]$2[/url]');}
-      content = content.replace(/<\/?a[^><]*>/g,"");//filter out any links still present, since the only ones that are parsed with this are ones added by the forum
-      content = content.replace(/<strong>/gi, '[b]');
-      content = content.replace(/<\/strong>/gi, '[/b]');
-      content = content.replace(/<em>/gi, '[i]');
-      content = content.replace(/<\/em>/gi, '[/i]');
-      content = content.replace(/<span class="?underline"?>/gi, '[u]');
-      content = content.replace(/<\/span>/gi, '[/u]');
-      content = content.replace(/<li>/gi, '[li]');
-      content = content.replace(/<\/li>/gi, '[/li]');
-      content = content.replace(/<ul>/gi, '[ul]');
-      content = content.replace(/<\/ul>/gi, '[/ul]');
-      //content = content.replace(/<blockquote[^><]*>(.*?)<div class="?quote-author"?>(.*?)<\/div>/gim, '[quote="$2"]');
-      content = content.replace(/<blockquote[^><]*>/gi, '[quote]');
-      content = content.replace(/<\/blockquote>/gi, '[/quote]');
-      content = content.replace(/<code>/gi, '[code]');
-      content = content.replace(/<\/code>/gi, '[/code]');
-      content = content.replace(/(\n<br(.*?)>)|(<br(.*?)>\n)|(<br(.*?)>)/gi, "\n");
-      content = BML.decode(content);
+        {postContent = postContent.replace(/<a href="([^"]*)" class="bml-link-url2">((?:(?:[^<>])*(?:<(?:\/)?[^a<>\/](?:[^<>])*>)*)*)?\<\/a>/gi, '[url="$1"]$2[/url]');}
+      postContent = postContent.replace(/<\/?a[^><]*>/g,"");//filter out any links still present, since the only ones that are parsed with this are ones added by the forum
+      postContent = postContent.replace(/<strong>/gi, '[b]');
+      postContent = postContent.replace(/<\/strong>/gi, '[/b]');
+      postContent = postContent.replace(/<em>/gi, '[i]');
+      postContent = postContent.replace(/<\/em>/gi, '[/i]');
+      postContent = postContent.replace(/<span class="?underline"?>/gi, '[u]');
+      postContent = postContent.replace(/<\/span>/gi, '[/u]');
+      postContent = postContent.replace(/<li>/gi, '[li]');
+      postContent = postContent.replace(/<\/li>/gi, '[/li]');
+      postContent = postContent.replace(/<ul>/gi, '[ul]');
+      postContent = postContent.replace(/<\/ul>/gi, '[/ul]');
+      //postContent = postContent.replace(/<blockquote[^><]*>(.*?)<div class="?quote-author"?>(.*?)<\/div>/gim, '[quote="$2"]');
+      postContent = postContent.replace(/<blockquote[^><]*>/gi, '[quote]');
+      postContent = postContent.replace(/<\/blockquote>/gi, '[/quote]');
+      postContent = postContent.replace(/<code>/gi, '[code]');
+      postContent = postContent.replace(/<\/code>/gi, '[/code]');
+      postContent = postContent.replace(/(\n<br(.*?)>)|(<br(.*?)>\n)|(<br(.*?)>)/gi, "\n");
+      postContent = BML.decode(postContent);
 
-      return content;
+      return postContent;
     },
 
     /**
