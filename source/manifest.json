@@ -1,6 +1,6 @@
 {
   "name": "Blizzard Forum eXtender",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Adds useful features to Blizzard Entertainment forums.",
   "manifest_version": 2,
   "icons": { "48": "bfx-48.png","128": "bfx-128.png" },

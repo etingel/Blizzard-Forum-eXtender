@@ -8,7 +8,7 @@
 // @grant         GM_setValue
 // @icon          http://maged.lordaeron.org/bfx/bfx-icon32.png
 // @require       http://maged.lordaeron.org/bfx/libs/jquery-1.6.2.min.js
-// @version       0.7.0
+// @version       0.7.1
 // ==/UserScript==
 
 //To-do: 
