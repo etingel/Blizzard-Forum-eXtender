@@ -8,7 +8,7 @@
 // @grant         GM_setValue
 // @icon          http://maged.lordaeron.org/bfx/bfx-icon32.png
 // @require       http://maged.lordaeron.org/bfx/libs/jquery-1.6.2.min.js
-// @version       0.7.1
+// @version       0.7.2
 // ==/UserScript==
 
 //To-do: 
@@ -30,15 +30,29 @@ function BFXmain() {
   {
     BFXnewtopic();
   }
+  if (/^http(s)?:\/\/(\w)+\.battle\.net\/((\w)+\/)?(\w)+\/forum\/topic\/post\/[0-9]+\/edit$/.test(document.location.href))
+  {
+    BFXeditpost();
+  }
   if (/^http(s)?:\/\/(\w)+\.battle\.net\/((\w)+\/)?(\w)+\/forum\/[0-9]+\/topic\?bfx-options$/.test(document.location.href))
   {
     BFXoptions();
   }
   //add BFX options link.
-  $('.service-welcome').append('\n|  <a href="' + getNewTopicURL() + '?bfx-options" tabindex="50" accesskey="3">BFX Options</a>');
+  if ($(".user-profile .dropdown-section").length > 1)
+  {
+    //2015
+    $(".user-profile .dropdown-section:last").before('<div class="dropdown-section"><ul class="nav-list"><li><a class="nav-item nav-a nav-item-box" href="' + getNewTopicURL() + '?bfx-options" data-analytics="global-nav" data-analytics-placement="Nav - Account - Settings"><i class="nav-icon-24-blue nav-icon-bfx-options"></i>BFX Options</a></li></ul></div>');
+    $(".nav-icon-bfx-options").css('background-position', '-24px -576px').css('margin', '2px 8px 0 2px');
+  }
+  else
+  {
+    //legacy
+    $('.service-welcome').append('\n|  <a href="' + getNewTopicURL() + '?bfx-options" tabindex="50" accesskey="3">BFX Options</a>');
+    //add BFX support bar
+    $('.support-nav').append('<li><a href="http://code.google.com/p/bfx/issues/list" tabindex="55" class="support-category"><strong class="support-caption">BFX Issues</strong>Report issues with Blizzard Forum eXtender here.</a></li>');
+  }
   
-  //add BFX support bar
-  $('.support-nav').append('<li><a href="http://code.google.com/p/bfx/issues/list" tabindex="55" class="support-category"><strong class="support-caption">BFX Issues</strong>Report issues with Blizzard Forum eXtender here.</a></li>');
 
 //====Migrated code from BFH:====
   //==Lengthen Search Box==
@@ -85,6 +99,7 @@ function BFXthread() {
   //check if any post-processing needs to be done before submitting a reply
   if (GM_getValue("signature_toggle", false) || GM_getValue("degradebml", true))
   {
+    initPostTextArea();
     addPostProcessingCode(true/*is a reply*/);
   }
 }
@@ -93,7 +108,17 @@ function BFXnewtopic() {
   //check if any post-processing needs to be done before submitting a reply
   if (GM_getValue("signature_toggle", false) || GM_getValue("degradebml", true))
   {
+    initPostTextArea();
     addPostProcessingCode(false/*is a new post*/);
+  }
+}
+
+function BFXeditpost() {
+  //check if any post-processing needs to be done before submitting the edit
+  if (GM_getValue("signature_toggle", false) || GM_getValue("degradebml", true))
+  {
+    initPostTextArea();
+    addPostProcessingCode(false/*is based on the new post page*/);
   }
 }
 
@@ -353,6 +378,22 @@ function getSig(postBodyString)
     }
   } else {
     return {"body":postContent,"separator":null,"sig":null};
+  }
+}
+
+function initPostTextArea()
+{
+  var postTextBox = $("#postCommand\\.detail.post-editor, #detail.post-editor");
+  
+  if (GM_getValue("signature_toggle", false))
+  {
+    var postText = postTextBox.val();
+    var sigLocation = postText.lastIndexOf(addSig(""));
+    if (sigLocation > 0)
+    {
+      var newPostText = postText.substr(0, sigLocation);
+      postTextBox.val(newPostText);
+    }
   }
 }
 
